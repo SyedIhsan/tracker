@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Tracker App</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+  }
+  #delivery-form {
+    margin-bottom: 20px;
+  }
+  #delivery-table {
+    width: 80%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  #delivery-table th, #delivery-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Delivery Tracker App</h1>
+  <form id="delivery-form">
+    <label for="do-no">DO No.:</label>
+    <input type="text" id="do-no" required>
+    <label for="driver">Driver:</label>
+    <select id="driver" required>
+      <option value="Local 01">Local 01</option>
+      <option value="Local 02">Local 02</option>
+      <option value="Local 03">Local 03</option>
+      <option value="Local 04">Local 04</option>
+    </select>
+    <label for="status">Status:</label>
+    <select id="status" required>
+      <option value="Pending">Pending</option>
+      <option value="In Transit">In Transit</option>
+      <option value="Delay">Delay</option>
+      <option value="Delivered">Delivered</option>
+    </select>
+    <div id="delay-reason-container" style="display: none;">
+      <label for="delay-reason">Delay Reason:</label>
+      <input type="text" id="delay-reason">
+      <label for="new-eta">New ETA:</label>
+      <input type="datetime-local" id="new-eta">
+    </div>
+    <button type="submit">Update</button>
+  </form>
+  <h2>Delivery History</h2>
+  <table id="delivery-table">
+    <thead>
+      <tr>
+        <th>DO No.</th>
+        <th>Driver</th>
+        <th>Status</th>
+        <th>Delay Reason</th>
+        <th>New ETA</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="delivery-history"></tbody>
+  </table>
+</div>
+<script>
+    const deliveryForm = document.getElementById("delivery-form");
+    const deliveryHistory = document.getElementById("delivery-history");
+    const delayReasonContainer = document.getElementById("delay-reason-container");
+  
+    function formatDate(dateString) {
+      const options = { year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "numeric" };
+      return new Date(dateString).toLocaleDateString(undefined, options);
+    }
+  
+    function addDeliveryToLocalStorage(deliveryData) {
+      const deliveries = JSON.parse(localStorage.getItem("deliveries")) || [];
+      deliveries.push(deliveryData);
+      localStorage.setItem("deliveries", JSON.stringify(deliveries));
+    }
+  
+    function addRowToTable(delivery, index) {
+    const row = deliveryHistory.insertRow();
+    const doNoCell = row.insertCell();
+    const driverCell = row.insertCell();
+    const statusCell = row.insertCell();
+    const delayReasonCell = row.insertCell();
+    const newEtaCell = row.insertCell();
+    const actionsCell = row.insertCell();
+
+    doNoCell.textContent = delivery.doNo;
+    driverCell.textContent = delivery.driver;
+    statusCell.textContent = delivery.status;
+
+    if (delivery.status === "Delay") {
+      delayReasonCell.textContent = delivery.delayReason;
+      newEtaCell.textContent = delivery.newEta ? formatDate(delivery.newEta) : "-";
+    } else {
+      delayReasonCell.textContent = "-";
+      newEtaCell.textContent = "-";
+    }
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => {
+      deleteDelivery(index);
+    });
+    actionsCell.appendChild(deleteButton);
+  }
+
+  function loadDeliveriesFromLocalStorage() {
+    const deliveries = JSON.parse(localStorage.getItem("deliveries")) || [];
+    deliveries.forEach((delivery, index) => {
+      addRowToTable(delivery, index);
+    });
+  }
+
+  function updateTableAfterSubmission(deliveryData) {
+    const index = deliveryHistory.rows.length;
+    addRowToTable(deliveryData, index);
+  }
+
+  function deleteDelivery(index) {
+    const deliveries = JSON.parse(localStorage.getItem("deliveries")) || [];
+    deliveries.splice(index, 1);
+    localStorage.setItem("deliveries", JSON.stringify(deliveries));
+
+    // Clear the table and reload the updated data
+    deliveryHistory.innerHTML = "";
+    loadDeliveriesFromLocalStorage();
+  }
+  
+    deliveryForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+  
+      const doNoInput = document.getElementById("do-no");
+      const driverInput = document.getElementById("driver");
+      const statusInput = document.getElementById("status");
+  
+      const doNo = doNoInput.value;
+      const driver = driverInput.value;
+      const status = statusInput.value;
+      const delayReason = status === "Delay" ? (document.getElementById("delay-reason").value || "No reason provided") : "";
+      const newEta = status === "Delay" ? document.getElementById("new-eta").value : "";
+  
+      if (doNo) {
+        const row = deliveryHistory.insertRow();
+        const doNoCell = row.insertCell();
+        const driverCell = row.insertCell();
+        const statusCell = row.insertCell();
+        const delayReasonCell = row.insertCell();
+        const newEtaCell = row.insertCell();
+  
+        doNoCell.textContent = doNo;
+        driverCell.textContent = driver;
+        statusCell.textContent = status;
+  
+        if (status === "Delay") {
+          delayReasonCell.textContent = delayReason;
+          newEtaCell.textContent = newEta ? formatDate(newEta) : "-";
+        } else {
+          delayReasonCell.textContent = "-";
+          newEtaCell.textContent = "-";
+        }
+  
+        const deliveryData = {
+          doNo,
+          driver,
+          status,
+          delayReason: status === "Delay" ? delayReason : "",
+          newEta: status === "Delay" ? newEta : "",
+        };
+  
+        addDeliveryToLocalStorage(deliveryData);
+  
+        location.reload();
+      }
+    });
+  
+    const statusInput = document.getElementById("status");
+    statusInput.addEventListener("change", function() {
+      if (statusInput.value === "Delay") {
+        delayReasonContainer.style.display = "block";
+      } else {
+        delayReasonContainer.style.display = "none";
+      }
+    });
+    
+    // Load existing data from Local Storage on page load
+    loadDeliveriesFromLocalStorage();
+</script>
+
+<head>
+    <!-- ... (other meta tags and title) ... -->
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+      }
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+      }
+      #delivery-form {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        width: 80%;
+        max-width: 400px; /* Adjust the maximum width as needed */
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #delivery-form label {
+        width: 100%;
+      }
+      #delivery-form button[type="submit"] {
+        margin-top: 10px;
+      }
+      #delivery-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      #delivery-table th, #delivery-table td {
+        border: 1px solid #000000;
+        padding: 10px;
+        text-align: left;
+      }
+      #delivery-table th {
+        background-color: #78b9fd;
+      }
+      h1, h2 {
+        color: #333333;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      select, input[type="text"], input[type="datetime-local"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        background-color: #f9f9f9; /* Adjust the background color */
+        color: #333; /* Adjust the text color */
+        box-sizing: border-box;
+      }
+      button[type="submit"] {
+        background-color: #007bff;
+        color: #ffffff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      #delay-reason-container {
+        display: none;
+      }
+    </style>
+  </head>  
+  
+</body>
+</html>
