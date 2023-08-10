@@ -140,6 +140,13 @@
     deliveryHistory.innerHTML = "";
     loadDeliveriesFromLocalStorage();
   }
+
+  function updateTable() {
+    deliveryHistory.innerHTML = "";
+    loadDeliveriesFromLocalStorage();
+  }
+
+  setInterval(updateTable, 5000);
   
     deliveryForm.addEventListener("submit", function(event) {
       event.preventDefault();
